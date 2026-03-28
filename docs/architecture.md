@@ -35,7 +35,7 @@
 │  │  │  FastAPI Server                     │  │               │
 │  │  │  ├── POST /chat                     │  │               │
 │  │  │  ├── GET /health                    │  │               │
-│  │  │  └── Session management (in-memory) │  │               │
+│  │  │  └── Session & account data (SQLite)│  │               │
 │  │  └──────────────┬──────────────────────┘  │               │
 │  │                 │                          │               │
 │  │  ┌──────────────▼──────────────────────┐  │               │
@@ -78,4 +78,4 @@
 | LLM | Gemini 2.0 Flash (Google Cloud) | Free credits, fast, large context |
 | Hosting (frontend) | Vercel | Free, instant deploy |
 | Hosting (backend) | VPS | Agent runtime |
-| Data | JSON (skills) + Markdown (knowledge) | Simple, universal |
+| Data | SQLite (accounts/chats/preferences/contributions) + JSON/Markdown (skills) | Persistent MVP state, simple ops |
