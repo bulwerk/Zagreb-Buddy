@@ -184,13 +184,40 @@ IMPORTANT: Return ONLY the JSON object. No markdown code blocks. No extra text.
 
         return response.text.strip()
 
-    def _parse_response(self, response_text: str) -> dict:
+    @staticmethod
+    def _extract_json(text: str) -> dict | None:
+        """Try to find and parse a JSON object from text, even if surrounded by prose."""
+        stripped = text.strip()
+
+        if stripped.startswith("```"):
+            stripped = stripped.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
         try:
-            text = response_text
-            if text.startswith("```"):
-                text = text.split("\n", 1)[1].rsplit("```", 1)[0]
-            result = json.loads(text)
+            return json.loads(stripped)
         except (json.JSONDecodeError, IndexError):
+            pass
+
+        brace_start = text.find("{")
+        if brace_start == -1:
+            return None
+
+        depth = 0
+        for i in range(brace_start, len(text)):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[brace_start : i + 1])
+                    except json.JSONDecodeError:
+                        return None
+        return None
+
+    def _parse_response(self, response_text: str) -> dict:
+        result = self._extract_json(response_text)
+
+        if result is None:
             logger.warning("LLM returned non-JSON response, using fallback")
             result = {
                 "message": response_text,
