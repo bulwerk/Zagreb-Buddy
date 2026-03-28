@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 
 from fastapi import FastAPI, HTTPException
@@ -65,7 +66,7 @@ class ChatResponse(BaseModel):
 
 from zagreb_agent import ZagrebAgent  # noqa: E402
 
-repository = StorageRepository()
+repository = StorageRepository(db_path=os.getenv("ZAGREB_BUDDY_DB_PATH"))
 agent = ZagrebAgent(repository=repository)
 
 
