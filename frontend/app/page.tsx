@@ -96,9 +96,9 @@ export default function Home() {
         <Image
           src="/logo-preview.png"
           alt="Zagreb Buddy logo"
-          width={28}
-          height={28}
-          className="rounded-full bg-white"
+          width={26}
+          height={26}
+          className="rounded-md border border-slate-700 bg-white p-0.5"
           priority
         />
         <div className="flex-1">
