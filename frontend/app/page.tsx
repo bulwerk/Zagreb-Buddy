@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { ChatMessage, Itinerary } from '@/lib/types';
 import { sendMessage } from '@/lib/api';
 import { ChatWindow } from '@/components/Chat/ChatWindow';
@@ -92,7 +93,14 @@ export default function Home() {
   return (
     <div className="h-[100dvh] flex flex-col bg-slate-950 text-white">
       <header className="flex-shrink-0 px-4 py-3 border-b border-slate-800 flex items-center gap-3 bg-slate-900/95 backdrop-blur-sm">
-        <span className="text-2xl">🏙️</span>
+        <Image
+          src="/logo-preview.png"
+          alt="Zagreb Buddy logo"
+          width={28}
+          height={28}
+          className="rounded-full bg-white"
+          priority
+        />
         <div className="flex-1">
           <h1 className="font-bold text-lg leading-tight">Zagreb Buddy</h1>
           <p className="text-xs text-slate-400">Your AI local friend</p>
