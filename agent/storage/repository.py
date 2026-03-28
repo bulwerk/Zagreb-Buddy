@@ -10,8 +10,9 @@ from typing import Any
 class StorageRepository:
     """Minimal persistence layer for MVP account, chat, and contribution data."""
 
-    def __init__(self, db_path: str | Path = "agent/data/zagreb_buddy.db") -> None:
-        self.db_path = Path(db_path)
+    def __init__(self, db_path: str | Path | None = None) -> None:
+        default_db_path = Path(__file__).resolve().parents[1] / "data" / "zagreb_buddy.db"
+        self.db_path = Path(db_path) if db_path else default_db_path
         self.schema_path = Path(__file__).with_name("schema.sql")
         self._ensure_parent_dir()
         self.initialize()
@@ -37,8 +38,9 @@ class StorageRepository:
         display_name: str,
         password_hash: str,
         home_city: str = "zagreb",
+        user_id: str | None = None,
     ) -> str:
-        user_id = str(uuid.uuid4())
+        user_id = user_id or str(uuid.uuid4())
         with self._connect() as conn:
             conn.execute(
                 """
@@ -48,6 +50,25 @@ class StorageRepository:
                 (user_id, email, display_name, password_hash, home_city),
             )
         return user_id
+
+    def ensure_user(
+        self,
+        *,
+        user_id: str,
+        email: str,
+        display_name: str,
+        password_hash: str = "!",
+        home_city: str = "zagreb",
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO users (id, email, display_name, password_hash, home_city)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO NOTHING
+                """,
+                (user_id, email, display_name, password_hash, home_city),
+            )
 
     def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         with self._connect() as conn:
@@ -71,8 +92,9 @@ class StorageRepository:
         user_id: str,
         title: str | None = None,
         city_slug: str = "zagreb",
+        session_id: str | None = None,
     ) -> str:
-        session_id = str(uuid.uuid4())
+        session_id = session_id or str(uuid.uuid4())
         with self._connect() as conn:
             conn.execute(
                 """
@@ -82,6 +104,32 @@ class StorageRepository:
                 (session_id, user_id, title, city_slug),
             )
         return session_id
+
+    def get_chat_session(self, session_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM chat_sessions WHERE id = ?",
+                (session_id,),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def ensure_chat_session(
+        self,
+        *,
+        session_id: str,
+        user_id: str,
+        title: str | None = None,
+        city_slug: str = "zagreb",
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_sessions (id, user_id, title, city_slug)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(id) DO NOTHING
+                """,
+                (session_id, user_id, title, city_slug),
+            )
 
     def list_user_sessions(self, user_id: str, limit: int = 20) -> list[dict[str, Any]]:
         with self._connect() as conn:
@@ -282,3 +330,66 @@ class StorageRepository:
                 """,
                 (status, reviewer_note, contribution_id),
             )
+
+    def upsert_google_integration(
+        self,
+        *,
+        user_id: str,
+        access_token: str,
+        refresh_token: str | None,
+        token_uri: str,
+        scopes: list[str],
+        expiry: str | None = None,
+        google_email: str | None = None,
+        client_id: str | None = None,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO google_integrations (
+                    user_id,
+                    google_email,
+                    access_token,
+                    refresh_token,
+                    token_uri,
+                    client_id,
+                    scopes_json,
+                    expiry,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                ON CONFLICT(user_id) DO UPDATE SET
+                    google_email = excluded.google_email,
+                    access_token = excluded.access_token,
+                    refresh_token = COALESCE(excluded.refresh_token, google_integrations.refresh_token),
+                    token_uri = excluded.token_uri,
+                    client_id = excluded.client_id,
+                    scopes_json = excluded.scopes_json,
+                    expiry = excluded.expiry,
+                    updated_at = datetime('now')
+                """,
+                (
+                    user_id,
+                    google_email,
+                    access_token,
+                    refresh_token,
+                    token_uri,
+                    client_id,
+                    json.dumps(scopes),
+                    expiry,
+                ),
+            )
+
+    def get_google_integration(self, user_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM google_integrations WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+
+        if not row:
+            return None
+
+        payload = dict(row)
+        payload["scopes"] = json.loads(payload.pop("scopes_json") or "[]")
+        return payload

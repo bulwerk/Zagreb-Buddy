@@ -3,6 +3,7 @@
 import { ChatMessage } from '@/lib/types';
 import { PlaceCard } from '@/components/Places/PlaceCard';
 import { FollowUpButtons } from './FollowUpButtons';
+import { GoogleActions } from '@/components/Integrations/GoogleActions';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -59,6 +60,7 @@ export function MessageBubble({ message, onFollowUp }: MessageBubbleProps) {
               <span>🌤 {message.itinerary.weather_note}</span>
             )}
           </div>
+          <GoogleActions itinerary={message.itinerary} />
         </div>
       )}
 

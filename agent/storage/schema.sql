@@ -57,3 +57,17 @@ CREATE TABLE IF NOT EXISTS contributions (
 
 CREATE INDEX IF NOT EXISTS idx_contributions_status ON contributions(status);
 CREATE INDEX IF NOT EXISTS idx_contributions_city_slug ON contributions(city_slug);
+
+CREATE TABLE IF NOT EXISTS google_integrations (
+  user_id TEXT PRIMARY KEY,
+  google_email TEXT,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT,
+  token_uri TEXT NOT NULL DEFAULT 'https://oauth2.googleapis.com/token',
+  client_id TEXT,
+  scopes_json TEXT NOT NULL DEFAULT '[]',
+  expiry TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

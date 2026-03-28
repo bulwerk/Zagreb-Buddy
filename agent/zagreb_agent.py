@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from dotenv import load_dotenv
 from skill_loader import SkillLoader
+from storage import StorageRepository
 
 import google.generativeai as genai
 
@@ -19,7 +20,7 @@ AGENT_DIR = Path(__file__).resolve().parent
 
 
 class ZagrebAgent:
-    def __init__(self):
+    def __init__(self, repository: StorageRepository | None = None):
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY not set in environment / .env")
@@ -33,8 +34,49 @@ class ZagrebAgent:
         self.base_system_prompt = (AGENT_DIR / "system_prompt.md").read_text()
 
         self.sessions: dict[str, list[dict]] = defaultdict(list)
+        self.repository = repository
 
         print("🚀 Zagreb Buddy ready!\n")
+
+    @staticmethod
+    def _anon_identity_for_session(session_id: str) -> tuple[str, str]:
+        # Deterministic anonymous identity to satisfy DB foreign keys.
+        user_id = f"anon-{session_id}"
+        email = f"anon+{session_id}@local.zagrebbuddy"
+        return user_id, email
+
+    def _ensure_persistent_session(self, session_id: str) -> None:
+        if not self.repository:
+            return
+
+        user_id, email = self._anon_identity_for_session(session_id)
+        self.repository.ensure_user(
+            user_id=user_id,
+            email=email,
+            display_name="Anonymous User",
+        )
+        self.repository.ensure_chat_session(
+            session_id=session_id,
+            user_id=user_id,
+        )
+
+    def _load_history_from_storage(self, session_id: str) -> list[dict]:
+        if not self.repository:
+            return []
+
+        if self.repository.get_chat_session(session_id) is None:
+            return []
+
+        rows = self.repository.list_chat_messages(session_id=session_id, limit=20)
+        return [{"role": row["role"], "content": row["content"]} for row in rows]
+
+    def get_history(self, session_id: str, limit: int = 100) -> list[dict]:
+        if self.repository:
+            rows = self.repository.list_chat_messages(session_id=session_id, limit=limit)
+            return [{"role": row["role"], "content": row["content"]} for row in rows]
+
+        history = self.sessions.get(session_id, [])
+        return history[-limit:]
 
     def _build_full_prompt(self, matched_skills: list, user_context: dict | None) -> str:
         """Assemble the complete system prompt with dynamic context."""
@@ -137,6 +179,17 @@ IMPORTANT: Return ONLY the JSON object. No markdown code blocks. No extra text.
 
     async def chat(self, message: str, session_id: str, user_context: dict | None = None) -> dict:
         """Process a user message and return agent response."""
+        if not self.sessions.get(session_id):
+            try:
+                self.sessions[session_id] = self._load_history_from_storage(session_id)
+            except Exception:
+                logger.exception("Failed to hydrate history from storage")
+
+        try:
+            self._ensure_persistent_session(session_id)
+        except Exception:
+            logger.exception("Failed to ensure persistent session")
+
         history = self.sessions[session_id]
 
         context_text = message
@@ -164,6 +217,21 @@ IMPORTANT: Return ONLY the JSON object. No markdown code blocks. No extra text.
 
         history.append({"role": "user", "content": message})
         history.append({"role": "assistant", "content": result.get("message", "")})
+
+        if self.repository:
+            try:
+                self.repository.add_chat_message(
+                    session_id=session_id,
+                    role="user",
+                    content=message,
+                )
+                self.repository.add_chat_message(
+                    session_id=session_id,
+                    role="assistant",
+                    content=result.get("message", ""),
+                )
+            except Exception:
+                logger.exception("Failed to persist chat messages")
 
         if len(history) > 20:
             self.sessions[session_id] = history[-20:]

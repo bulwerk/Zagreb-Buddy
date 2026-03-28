@@ -11,6 +11,7 @@
 9. [Demo scenarios](demo-scenarios.md) — three demo scripts
 10. [Future vision](future-vision.md) — roadmap
 11. [Proposed features audit](proposed-features-audit.md) — implemented vs missing roadmap items and gap-only proposals
-12. [Environment & deployment](environment-and-deployment.md) — `.env`, Vercel, VPS
-13. [ZeroClaw setup](zeroclaw-setup.md) — ZeroClaw gateway, VPS deployment
-14. [Presentation outline](PRESENTATION.md) — slides / pitch
+12. [Google integrations](google-integrations.md) — OAuth, Maps routes, Calendar events
+13. [Environment & deployment](environment-and-deployment.md) — `.env`, Vercel, VPS
+14. [ZeroClaw setup](zeroclaw-setup.md) — ZeroClaw gateway, VPS deployment
+15. [Presentation outline](PRESENTATION.md) — slides / pitch

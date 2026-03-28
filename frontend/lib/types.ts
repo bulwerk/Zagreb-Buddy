@@ -34,3 +34,36 @@ export interface ChatMessage {
   follow_ups?: string[];
   timestamp: Date;
 }
+
+export interface GoogleConnectResponse {
+  authorize_url: string;
+}
+
+export interface GoogleMapsRouteResponse {
+  maps_directions_url: string;
+}
+
+export interface GoogleCalendarEventResponse {
+  id: string;
+  html_link: string | null;
+  status: string | null;
+}
+
+export interface GoogleCalendarCreateRequest {
+  title: string;
+  description?: string;
+  start_iso: string;
+  end_iso: string;
+  timezone_name?: string;
+  location?: string;
+}
+
+export interface GoogleCalendarUpdateRequest {
+  event_id: string;
+  title?: string;
+  description?: string;
+  start_iso?: string;
+  end_iso?: string;
+  timezone_name?: string;
+  location?: string;
+}
