@@ -4,6 +4,7 @@ import {
   GoogleCalendarEventResponse,
   GoogleCalendarUpdateRequest,
   GoogleConnectResponse,
+  GoogleStatusResponse,
   GoogleMapsRouteResponse,
   Place,
 } from './types';
@@ -77,6 +78,12 @@ async function googleFetch<T>(path: string, init: RequestInit): Promise<T> {
 
 export async function getGoogleConnectUrl(): Promise<GoogleConnectResponse> {
   return googleFetch<GoogleConnectResponse>('/api/google/connect', {
+    method: 'GET',
+  });
+}
+
+export async function getGoogleStatus(): Promise<GoogleStatusResponse> {
+  return googleFetch<GoogleStatusResponse>('/api/google/status', {
     method: 'GET',
   });
 }

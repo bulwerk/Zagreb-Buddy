@@ -69,6 +69,11 @@ class GoogleConnectResponse(BaseModel):
     authorize_url: str
 
 
+class GoogleStatusResponse(BaseModel):
+    connected: bool
+    google_email: str | None = None
+
+
 class GoogleConnectCallbackRequest(BaseModel):
     code: str
 
@@ -159,6 +164,18 @@ async def google_connect(x_user_id: str | None = Header(default=None, alias="X-U
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
     return GoogleConnectResponse(authorize_url=authorize_url)
+
+
+@app.get("/integrations/google/status", response_model=GoogleStatusResponse)
+async def google_status(x_user_id: str | None = Header(default=None, alias="X-User-ID")):
+    resolved_user_id = _require_user_id(x_user_id)
+    integration = repository.get_google_integration(resolved_user_id)
+    if not integration:
+        return GoogleStatusResponse(connected=False, google_email=None)
+    return GoogleStatusResponse(
+        connected=True,
+        google_email=integration.get("google_email"),
+    )
 
 
 @app.post("/integrations/google/callback")

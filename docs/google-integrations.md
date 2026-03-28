@@ -36,6 +36,19 @@ Response:
 
 Use this URL in frontend to redirect user to Google consent.
 
+### 1b) Check connection status
+
+`GET /integrations/google/status`
+
+Response:
+
+```json
+{
+  "connected": true,
+  "google_email": null
+}
+```
+
 ### 2) Complete OAuth (exchange auth code)
 
 `POST /integrations/google/callback`

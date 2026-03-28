@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CalendarPlus, Link as LinkIcon } from 'lucide-react';
 import {
   buildGoogleRoute,
   createGoogleCalendarEvent,
+  getGoogleStatus,
   getGoogleConnectUrl,
 } from '@/lib/api';
 import { Itinerary } from '@/lib/types';
@@ -17,6 +18,25 @@ export function GoogleActions({ itinerary }: GoogleActionsProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isBuildingRoute, setIsBuildingRoute] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      setIsCheckingStatus(true);
+      try {
+        const status = await getGoogleStatus();
+        setIsConnected(status.connected);
+      } catch (err) {
+        console.error(err);
+        setIsConnected(false);
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+
+    void loadStatus();
+  }, []);
 
   const onConnectGoogle = async () => {
     setIsConnecting(true);
@@ -76,13 +96,23 @@ export function GoogleActions({ itinerary }: GoogleActionsProps) {
 
   return (
     <div className="flex flex-wrap gap-2 pt-2">
-      <button
-        onClick={onConnectGoogle}
-        disabled={isConnecting}
-        className="text-xs px-3 py-1.5 rounded-full border border-blue-500/40 text-blue-300 hover:bg-blue-500/10 transition-colors disabled:opacity-60"
-      >
-        {isConnecting ? 'Connecting…' : 'Connect Google'}
-      </button>
+      {isCheckingStatus ? (
+        <span className="text-xs px-3 py-1.5 rounded-full border border-slate-600 text-slate-300">
+          Checking Google status…
+        </span>
+      ) : isConnected ? (
+        <span className="text-xs px-3 py-1.5 rounded-full border border-emerald-500/40 text-emerald-300 bg-emerald-500/10">
+          Google connected
+        </span>
+      ) : (
+        <button
+          onClick={onConnectGoogle}
+          disabled={isConnecting}
+          className="text-xs px-3 py-1.5 rounded-full border border-blue-500/40 text-blue-300 hover:bg-blue-500/10 transition-colors disabled:opacity-60"
+        >
+          {isConnecting ? 'Connecting…' : 'Connect Google'}
+        </button>
+      )}
 
       <button
         onClick={onOpenRoute}
@@ -95,7 +125,9 @@ export function GoogleActions({ itinerary }: GoogleActionsProps) {
 
       <button
         onClick={onAddCalendar}
-        disabled={isCreatingEvent || itinerary.places.length === 0}
+        disabled={
+          isCreatingEvent || itinerary.places.length === 0 || isCheckingStatus || !isConnected
+        }
         className="text-xs px-3 py-1.5 rounded-full border border-violet-500/40 text-violet-300 hover:bg-violet-500/10 transition-colors disabled:opacity-60 inline-flex items-center gap-1"
       >
         <CalendarPlus size={12} />

@@ -39,6 +39,11 @@ export interface GoogleConnectResponse {
   authorize_url: string;
 }
 
+export interface GoogleStatusResponse {
+  connected: boolean;
+  google_email: string | null;
+}
+
 export interface GoogleMapsRouteResponse {
   maps_directions_url: string;
 }
